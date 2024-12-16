@@ -8,7 +8,7 @@ from flask_admin.contrib.sqla import ModelView
 app = Flask(__name__, static_folder='website/build')
 CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/databases.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///databases.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -91,5 +91,5 @@ def login():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True)
 

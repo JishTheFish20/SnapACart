@@ -9,21 +9,26 @@ const Login = () => {
 
     const handleLogin = async (e) => {
         e.preventDefault();
-
-        const response = await fetch('http://127.0.0.1:5000/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password }),
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            alert(data.message);
-            navigate('/catalog');
-           
-        } else {
-            alert(data.error);
+    
+        const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://127.0.0.1:5000';
+        try {
+            const response = await fetch(`${baseUrl}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password }),
+            });
+    
+            const data = await response.json();
+    
+            if (response.ok) {
+                alert(data.message);
+                navigate('/catalog');
+            } else {
+                alert(data.error);
+            }
+        } catch (error) {
+            console.error('Error logging in:', error);
+            alert('An error occurred while logging in. Please try again.');
         }
     };
 
@@ -39,7 +44,7 @@ const Login = () => {
                 <input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)} />
                 
                 <button type="submit">Login</button>
-                <button type="button" onClick={() => window.location.href = '/register'}>
+                <button type="button" onClick={() => navigate('/register')}>
                     Register
                 </button>
             </form>
