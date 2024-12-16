@@ -57,6 +57,39 @@ def serve_react_app():
 def static_proxy(path):
     return send_from_directory(app.static_folder, path)
 
+
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+
+    if not username or not password:
+        return jsonify({"error": "Invalid username or password"}), 400
+
+   
+    if Login.query.filter_by(username=username).first():
+        return jsonify({"error": "User already exists"}), 400
+
+    new_user = Login(username=username, password=password)
+    db.session.add(new_user)
+    db.session.commit()
+    return jsonify({"message": "User registered successfully"}), 201
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+
+    # Verify credentials
+    user = Login.query.filter_by(username=username, password=password).first()
+    if user:
+        return jsonify({"message": "Login successful"}), 200
+    return jsonify({"error": "Invalid credentials"}), 401
+
+
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True)
 

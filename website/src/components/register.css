@@ -31,3 +31,13 @@ button {
 button:hover {
     background-color: #ddd;
 }
+
+.register-box {
+    width: 350px;
+    padding: 2rem;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    background-color: white;
+    text-align: center;
+}
