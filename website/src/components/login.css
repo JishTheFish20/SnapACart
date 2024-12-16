@@ -7,6 +7,16 @@
     background-color: #f9f9f9;
 }
 
+.login-box {
+    width: 350px;
+    padding: 2rem;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    background-color: white;
+    text-align: center;
+}
+
 form {
     display: flex;
     flex-direction: column;
@@ -26,6 +36,10 @@ button {
     border: none;
     border-radius: 5px;
     cursor: pointer;
+
+    background-color: #007bff;
+    color: white;
+    transition: background-color 0.3s ease;
 }
 
 button:hover {
