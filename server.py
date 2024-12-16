@@ -4,6 +4,7 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
+import bcrypt
 
 app = Flask(__name__, static_folder='website/build')
 CORS(app)
@@ -18,8 +19,8 @@ app.config['SECRET_KEY'] = '9/11'
 
 class Login(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80),nullable=False)
-    password = db.Column(db.String(80), nullable=False)
+    username = db.Column(db.String(80),nullable=False, unique = True)
+    password = db.Column(db.String(200), nullable=False)
     
 
 class Catalog(db.Model):
@@ -70,8 +71,10 @@ def register():
    
     if Login.query.filter_by(username=username).first():
         return jsonify({"error": "User already exists"}), 400
+    
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
 
-    new_user = Login(username=username, password=password)
+    new_user = Login(username=username, password=hashed_password.decode('utf-8'))
     db.session.add(new_user)
     db.session.commit()
     return jsonify({"message": "User registered successfully"}), 201
@@ -83,11 +86,11 @@ def login():
     password = data.get('password')
 
     # Verify credentials
-    user = Login.query.filter_by(username=username, password=password).first()
-    if user:
+    user = Login.query.filter_by(username=username).first()
+    
+    if user and bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
         return jsonify({"message": "Login successful"}), 200
     return jsonify({"error": "Invalid credentials"}), 401
-
 
 
 if __name__ == '__main__':
