@@ -5,7 +5,7 @@ import "./shop.css";
 const Shop = () => {
     const [cart, setCart] = useState([]);
     const [showVideo, setShowVideo] = useState(false);
-    const [predictions, setPredictions] = useState('');
+    const [predictedItem, setPredictedItem] = useState('');
     const [loading, setLoading] = useState(false);  // For loading state when calling API
     const videoRef = useRef(null);  // Ref to hold the video element
 
@@ -60,14 +60,22 @@ const Shop = () => {
             });
 
             if (!response.ok) {
-                throw new Error("Failed to fetch predictions from the backend");
+                throw new Error("Failed to fetch item from the backend");
             }
 
             const data = await response.json();
-            if (data.predictions) {
-                setPredictions(data.predictions); // Handle the response (detected objects and confidence)
+            if (data.item) {
+                setPredictedItem(data.item); // Handle the response (detected objects and confidence)
+                // { id: 3, name: "Chips", price: "$3.00", img: "/images/lays.webp" }
+                if(data.item != "No Item"){
+                    var itemJson = {id: 4, name: data.item, price: "$2.00", img: "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/230ac8d3-54fe-47f6-8c5a-8e7e383080df/dfs0z7t-3aac49bd-c9e3-4ec7-b68b-d3eb03276cd6.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiJcL2ZcLzIzMGFjOGQzLTU0ZmUtNDdmNi04YzVhLThlN2UzODMwODBkZlwvZGZzMHo3dC0zYWFjNDliZC1jOWUzLTRlYzctYjY4Yi1kM2ViMDMyNzZjZDYucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.t4TM9ftTTxg_ywYMczWBNbX2Ww9xtQ8lnXrEc1I-ysA"};
+                    addToCart(itemJson);
+                    const sound = new Audio('/checkoutSound.mp3');
+                    sound.play();
+                }
+                
             } else {
-                console.error("No predictions received");
+                console.error("No item received");
             }
         } catch (error) {
             console.error("Error sending frame to backend:", error);
@@ -132,7 +140,7 @@ const Shop = () => {
                      {/* Detected Objects Section */}
                      <div className="detections">
                         <h2>Detected Objects</h2>
-                        <p>{predictions}</p>
+                        <p>{predictedItem}</p>
                     </div>
                     <div className="video-section">
                         <h1>Live Video Feed</h1>

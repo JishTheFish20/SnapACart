@@ -139,10 +139,10 @@ def predict():
 
     if(itemConfidence < 0.5 or last_detected_class == itemName):
         last_detected_class = "No Item"
-        return jsonify({'predictions': "No Item"})
+        return jsonify({'item': "No Item"})
     else:
         last_detected_class = itemName
-        return jsonify({'predictions': itemName})
+        return jsonify({'item': itemName})
 
 @app.route('/current_class')
 def current_class():
