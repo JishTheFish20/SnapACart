@@ -14,7 +14,7 @@ const Catalog = () => {
     useEffect(() => {
         const fetchCatalog = async () => {
             try {
-                const response = await fetch('http://127.0.0.1:5000/catalog'); 
+                const response = await fetch('/catalog'); 
                 const data = await response.json();
                 console.log("Fetched Catalog Data:", data); 
                 setItems(data);

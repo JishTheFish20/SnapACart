@@ -5,15 +5,25 @@ import "./shop.css";
 const Shop = () => {
     const [cart, setCart] = useState([]);
     const [showVideo, setShowVideo] = useState(false);
-    const [predictedItem, setPredictedItem] = useState('');
-    const [loading, setLoading] = useState(false);  // For loading state when calling API
-    const videoRef = useRef(null);  // Ref to hold the video element
+    const [predictedItem, setPredictedItem] = useState("");
+    const [loading, setLoading] = useState(false); // For loading state when calling API
+    const videoRef = useRef(null); // Ref to hold the video element
+    const [items, setItems] = useState([]);
 
-    const items = [
-        { id: 1, name: "Oreos", price: "$2.99", img: "/images/oreos.jpg" },
-        { id: 2, name: "Water Bottle", price: "$1.50", img: "/images/waterBottle.webp" },
-        { id: 3, name: "Chips", price: "$3.00", img: "/images/lays.webp" },
-    ];
+    useEffect(() => {
+        const fetchCatalog = async () => {
+            try {
+                const response = await fetch("/catalog");
+                const data = await response.json();
+                console.log("Fetched Catalog Data:", data);
+                setItems(data);
+            } catch (error) {
+                console.error("Error fetching catalog:", error);
+            }
+        };
+
+        fetchCatalog();
+    }, []);
 
     const addToCart = (item) => {
         setCart((prevCart) => [...prevCart, item]);
@@ -43,18 +53,17 @@ const Shop = () => {
 
         // Convert canvas to base64-encoded image (JPEG or PNG)
         const imageData = canvas.toDataURL("image/jpeg");
-        return imageData;  // Send this image to the backend for inference
+        return imageData; // Send this image to the backend for inference
     };
 
     // Send Frame to Backend for Inference
     const sendFrameToBackend = async (imageData) => {
-        setLoading(true);  // Set loading state to true when making API request
+        setLoading(true); // Set loading state to true when making API request
         try {
-            const token = localStorage.getItem('authToken');  // Assuming the token is stored in localStorage
-            const response = await fetch('/predict', {
-                method: 'POST',
+            const response = await fetch("/predict", {
+                method: "POST",
                 headers: {
-                    'Content-Type': 'application/json'
+                    "Content-Type": "application/json",
                 },
                 body: JSON.stringify({ image: imageData }), // Send the image as base64
             });
@@ -65,22 +74,35 @@ const Shop = () => {
 
             const data = await response.json();
             if (data.item) {
-                setPredictedItem(data.item); // Handle the response (detected objects and confidence)
-                // { id: 3, name: "Chips", price: "$3.00", img: "/images/lays.webp" }
-                if(data.item != "No Item"){
-                    var itemJson = {id: 4, name: data.item, price: "$2.00", img: "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/230ac8d3-54fe-47f6-8c5a-8e7e383080df/dfs0z7t-3aac49bd-c9e3-4ec7-b68b-d3eb03276cd6.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiJcL2ZcLzIzMGFjOGQzLTU0ZmUtNDdmNi04YzVhLThlN2UzODMwODBkZlwvZGZzMHo3dC0zYWFjNDliZC1jOWUzLTRlYzctYjY4Yi1kM2ViMDMyNzZjZDYucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.t4TM9ftTTxg_ywYMczWBNbX2Ww9xtQ8lnXrEc1I-ysA"};
-                    addToCart(itemJson);
-                    const sound = new Audio('/checkoutSound.mp3');
-                    sound.play();
+                if (data.item !== "No Item") {
+                    fetch(`/getItem?name=${data.item}`)
+                        .then((response) => {
+                            if (!response.ok) {
+                                throw new Error("Network response was not ok");
+                            }
+                            return response.json();
+                        })
+                        .then((item) => {
+                            // Assuming the API returns the item details
+                            const itemJson = {
+                                id: item.id,
+                                name: item.name,
+                                price: `$${item.price.toFixed(2)}`,
+                                img: item.img,
+                            };
+
+                            addToCart(itemJson);
+                            const sound = new Audio("/checkoutSound.mp3");
+                            sound.play();
+                        });
                 }
-                
             } else {
                 console.error("No item received");
             }
         } catch (error) {
             console.error("Error sending frame to backend:", error);
         } finally {
-            setLoading(false);  // Set loading state to false after the API call
+            setLoading(false); // Set loading state to false after the API call
         }
     };
 
@@ -107,8 +129,37 @@ const Shop = () => {
         if (videoRef.current && videoRef.current.srcObject) {
             const stream = videoRef.current.srcObject;
             const tracks = stream.getTracks();
-            tracks.forEach(track => track.stop());  // Stop all media tracks
+            tracks.forEach((track) => track.stop()); // Stop all media tracks
             videoRef.current.srcObject = null;
+        }
+    };
+
+    // Checkout Functionality
+    const handleCheckout = async () => {
+        if (cart.length === 0) {
+            alert("Your cart is empty. Add items before checking out.");
+            return;
+        }
+
+        try {
+            const response = await fetch("/checkout", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("authToken")}`, // Assuming the auth token is stored
+                },
+                body: JSON.stringify({ cart }), // Send the cart data
+            });
+
+            if (!response.ok) {
+                throw new Error("Checkout failed.");
+            }
+
+            const data = await response.json();
+            setCart([]); // Clear the cart after successful checkout
+        } catch (error) {
+            console.error("Error during checkout:", error);
+            alert("Checkout failed. Please try again.");
         }
     };
 
@@ -137,8 +188,7 @@ const Shop = () => {
                 {/* Right Side (Video Feed + Cart) */}
                 <div className="right-side">
                     {/* Video Feed Section */}
-                     {/* Detected Objects Section */}
-                     <div className="detections">
+                    <div className="detections">
                         <h2>Detected Objects</h2>
                         <p>{predictedItem}</p>
                     </div>
@@ -184,7 +234,7 @@ const Shop = () => {
                                 </div>
                             ))
                         )}
-                        <button className="checkout-btn">Checkout</button>
+                        <button onClick={handleCheckout} className="checkout-btn">Checkout</button>
                     </div>
                 </div>
             </div>

@@ -42,8 +42,10 @@
     flex: 3;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1.5rem;
-    height: 100%;
+    gap: 4rem; /* Increased gap for better spacing between cards */
+    max-width: 80%; /* Prevent the catalog from exceeding its container */
+    height: auto; /* Allow it to expand vertically for new rows */
+    overflow: hidden; /* Avoid overlap */
 }
 
 /* Item Cards */
@@ -51,7 +53,7 @@
     background-color: white;
     padding: 1rem;
     border: 1px solid #ddd;
-    border-radius: 5px;
+    border-radius: 5px; /* Increased radius for smoother edges */
     text-align: center;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     cursor: pointer;
@@ -59,6 +61,8 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    min-height: 150px; /* Set a minimum height */
+    height: auto; /* Prevent stretching vertically */
 }
 
 .item-card:hover {
@@ -67,11 +71,11 @@
 
 /* Item Image */
 .item-card img {
-    max-width: 100%;
+    max-width: 80%;
     height: auto;
     object-fit: contain; /* Prevents the image from stretching */
     margin-bottom: 1rem;
-    border-radius: 5px;
+    border-radius: 1px;
 }
 
 /* Item Text */
@@ -81,19 +85,6 @@
 
 .item-card p {
     margin: 0;
-}
-
-/* Prevent catalog items from stretching */
-.catalog {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1.5rem;
-    height: 100%;
-}
-
-.item-card {
-    height: auto; /* Prevent stretching vertically */
-    min-height: 250px; /* Give each item a minimum height */
 }
 
 /* Right Side Layout (Video Feed + Cart) */

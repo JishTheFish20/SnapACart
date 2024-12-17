@@ -26,6 +26,7 @@ names = model.names
 last_detected_class = "No Item"
 last_detection_confidence = 0
 last_detection_time = datetime.now()
+currentUser = ""
 
 class_threshold = 0.5  # Threshold for detection confidence
 reset_time_limit = 5  # Time in seconds to wait before considering the object gone
@@ -94,6 +95,7 @@ def register():
 
 @app.route('/login', methods=['POST'])
 def login():
+    global currentUser
     data = request.json
     username = data.get('username')
     password = data.get('password')
@@ -102,6 +104,7 @@ def login():
     user = Login.query.filter_by(username=username).first()
     
     if user and bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
+        currentUser = username
         return jsonify({"message": "Login successful"}), 200
     return jsonify({"error": "Invalid credentials"}), 401
 
@@ -119,6 +122,105 @@ def get_catalog():
     ]
     print("Catalog Data Sent:", items_list)
     return jsonify(items_list), 200
+
+@app.route('/getItem', methods=['GET'])
+def get_item():
+    name = request.args.get('name')  # Get the 'name' parameter from the query string
+
+    # Filter items by the given name
+    item = Catalog.query.filter_by(itemName=name).first()
+
+    if not item:
+    # Create a list of dictionaries for the JSON response
+        item = {
+                "id": 999,
+                "name": name,
+                "price": 8.99,
+                "img": "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/230ac8d3-54fe-47f6-8c5a-8e7e383080df/dfs0z7t-3aac49bd-c9e3-4ec7-b68b-d3eb03276cd6.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiJcL2ZcLzIzMGFjOGQzLTU0ZmUtNDdmNi04YzVhLThlN2UzODMwODBkZlwvZGZzMHo3dC0zYWFjNDliZC1jOWUzLTRlYzctYjY4Yi1kM2ViMDMyNzZjZDYucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.t4TM9ftTTxg_ywYMczWBNbX2Ww9xtQ8lnXrEc1I-ysA"
+                }
+    else:
+        item = {
+            "id": item.id,
+            "name": item.itemName,
+            "price": item.itemPrice,
+            "img": item.itemURL
+        }
+       
+    print(item)
+    return jsonify(item), 200
+
+@app.route('/checkout', methods=['POST'])
+def checkout():
+    try:
+        current_user = currentUser
+        data = request.json
+
+        if not data or 'cart' not in data:
+            return jsonify({'success': False, 'message': 'Invalid data'}), 400
+
+        cart = data['cart']
+
+        max_list_id = db.session.query(db.func.max(List.listID)).filter_by(username=current_user).scalar() or 0
+        new_list_id = max_list_id + 1
+
+        for item in cart:
+            new_item = List(
+                username=current_user,  # Assuming current_user is the username
+                listID=new_list_id,  # Assign a listID (can be generated or predefined)
+                itemid=item['id']  # Use the item's ID from the cart
+            )
+            db.session.add(new_item)
+
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Checkout successful'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print("Error during checkout:", str(e))
+        return jsonify({'success': False, 'message': 'Checkout failed'}), 500
+
+@app.route('/transactions', methods=['GET'])
+def get_transactions():
+    try:
+        # Use the globally tracked `currentUser` to identify the user
+        current_user = currentUser
+        
+        if not current_user:
+            return jsonify({'error': 'No user logged in'}), 403
+        
+        # Fetch all lists associated with the user
+        transactions = List.query.filter_by(username=current_user).all()
+        
+        # Group items by listID
+        grouped_transactions = {}
+        for transaction in transactions:
+            item = Catalog.query.filter_by(itemid=transaction.itemid).first()
+            if item:
+                if transaction.listID not in grouped_transactions:
+                    grouped_transactions[transaction.listID] = {
+                        "id": transaction.listID,
+                        "date": transaction.id,  # Assuming `id` is a proxy for date; replace with a timestamp field if available
+                        "items": [],
+                        "total": 0.0
+                    }
+                grouped_transactions[transaction.listID]["items"].append(item.itemName)
+                grouped_transactions[transaction.listID]["total"] += item.itemPrice
+        
+        # Convert grouped data to a list for JSON response
+        grouped_transactions_list = list(grouped_transactions.values())
+
+        return jsonify(grouped_transactions_list), 200
+
+    except Exception as e:
+        print("Error retrieving transactions:", str(e))
+        return jsonify({'error': 'Failed to fetch transactions'}), 500
+
+
+    except Exception as e:
+        print("Error retrieving transactions:", str(e))
+        return jsonify({'error': 'Failed to fetch transactions'}), 500
+
+
 
 
 @app.route('/consent', methods=['POST'])
