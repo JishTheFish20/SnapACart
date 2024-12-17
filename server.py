@@ -172,6 +172,89 @@ def current_class():
     else:
         return jsonify({"class": None, "confidence": 0}), 200
 
+#----------------------------------------------
+
+@app.route('/update_cart', methods=['POST'])
+def update_cart():
+    data = request.json
+    username = data.get('username')
+    item_id = data.get('itemid')
+    list_id = data.get('listID')
+
+    if not username:
+        return jsonify({"error": "Username is missing"}), 400
+    if not item_id:
+        return jsonify({"error": "Item ID is missing"}), 400
+    if not list_id:
+        return jsonify({"error": "List ID is missing"}), 400
+
+
+    new_entry = List(username=username, listID=list_id, itemid=item_id)
+    db.session.add(new_entry)
+    db.session.commit()
+
+    return jsonify({"message": "Cart updated successfully"}), 200
+
+
+
+
+
+@app.route('/checkout', methods=['POST'])
+def checkout():
+    data = request.json
+    username = data.get('username')
+    list_id = data.get('listID')
+
+    if not username or not list_id:
+        return jsonify({"error": "Missing data"}), 400
+
+    # Clear the current user's list
+    List.query.filter_by(username=username, listID=list_id).delete()
+
+    # Commit the changes to clear the list
+    db.session.commit()
+
+    # Increment the listID for the user (handled on frontend or backend, depending on logic)
+    return jsonify({"message": "Checkout completed, list cleared"}), 200
+
+#-------------------------------------------------------------------------------------
+# history routing
+@app.route('/history/<username>', methods=['GET'])
+def get_history(username):
+    # Query to fetch user's history grouped by listID
+    user_history = (
+        db.session.query(List.listID, Catalog.itemName, Catalog.itemPrice)
+        .join(Catalog, List.itemid == Catalog.itemid)
+        .filter(List.username == username)
+        .order_by(List.listID)
+        .all()
+    )
+
+    # Group by listID
+    grouped_history = {}
+    for listID, itemName, itemPrice in user_history:
+        if listID not in grouped_history:
+            grouped_history[listID] = {"items": [], "total": 0.0}
+        grouped_history[listID]["items"].append(itemName)
+        grouped_history[listID]["total"] += itemPrice
+
+    # Format data for frontend
+    history_data = [
+        {"listID": listID, "items": data["items"], "total": f"${data['total']:.2f}"}
+        for listID, data in grouped_history.items()
+    ]
+    return jsonify(history_data), 200
+
+
+
+
+
+
+
+#-----------------------------------------------------------------------------------------
+
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)

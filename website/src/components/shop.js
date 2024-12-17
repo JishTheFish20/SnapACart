@@ -8,16 +8,102 @@ const Shop = () => {
     const [predictedItem, setPredictedItem] = useState('');
     const [loading, setLoading] = useState(false);  // For loading state when calling API
     const videoRef = useRef(null);  // Ref to hold the video element
+    const [listID, setListID] = useState(1); // Track the listID
+    //const username = "current_user"; // Replace with the actual username from your auth context
+    const username = localStorage.getItem("username"); // Retrieve the username
 
-    const items = [
-        { id: 1, name: "Oreos", price: "$2.99", img: "/images/oreos.jpg" },
-        { id: 2, name: "Water Bottle", price: "$1.50", img: "/images/waterBottle.webp" },
-        { id: 3, name: "Chips", price: "$3.00", img: "/images/lays.webp" },
-    ];
-
-    const addToCart = (item) => {
-        setCart((prevCart) => [...prevCart, item]);
+    // const items = [
+    //     { id: 1, name: "Oreos", price: "$2.99", img: "/images/oreos.jpg" },
+    //     { id: 2, name: "Water Bottle", price: "$1.50", img: "/images/waterBottle.webp" },
+    //     { id: 3, name: "Chips", price: "$3.00", img: "/images/lays.webp" },
+    // ];
+    const Shop = () => {
+        const username = localStorage.getItem("username"); // Get username from localStorage
+    
+        return (
+            <div className="shop-container">
+                {/* Access the username and use it in your JSX */}
+                <h1>Welcome, {username}</h1>
+                {/* Other content */}
+            </div>
+        );
     };
+    
+    const [items, setItems] = useState([]);
+    
+        useEffect(() => {
+            const fetchCatalog = async () => {
+                try {
+                    const response = await fetch('http://127.0.0.1:5000/catalog'); 
+                    const data = await response.json();
+                    console.log("Fetched Catalog Data:", data); 
+                    setItems(data);
+                } catch (error) {
+                    console.error("Error fetching catalog:", error);
+                }
+            };
+        
+            fetchCatalog();
+        }, []);
+
+    const addToCart = async (item) => {
+        const username = localStorage.getItem("username"); // Assuming username is stored in localStorage
+        const listID = localStorage.getItem("listID") || 1; // Default to 1 if not set
+    
+        try {
+            // Update the backend
+            await fetch("/update_cart", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    username: username,
+                    itemid: item.id,
+                    listID: listID,
+                }),
+            });
+            
+            // Update the cart locally
+            setCart((prevCart) => [...prevCart, item]);
+        } catch (error) {
+            console.error("Error updating cart:", error);
+            console.log("Sending to backend:", { username, itemid: item.id, listID });
+
+        }
+    }
+    
+    const handleCheckout = async () => {
+        const username = localStorage.getItem("username");
+        const listID = localStorage.getItem("listID") || 1;
+    
+        try {
+            // Send a checkout request to the backend
+            await fetch("/checkout", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    username: username,
+                    listID: listID,
+                }),
+            });
+    
+            // Clear the cart locally
+            setCart([]);
+    
+            // Increment the listID and store it
+            localStorage.setItem("listID", parseInt(listID) + 1);
+        } catch (error) {
+            console.error("Error during checkout:", error);
+            console.log("Sending checkout request:", { username, listID });
+
+        }
+    };
+    // const addToCart = (item) => {
+    //     setCart((prevCart) => [...prevCart, item]);
+    // };
 
     const removeFromCart = (index) => {
         const newCart = [...cart];
@@ -123,16 +209,25 @@ const Shop = () => {
 
             {/* Main Content */}
             <div className="content">
-                {/* Catalog Section */}
-                <div className="catalog">
-                    {items.map((item) => (
-                        <div key={item.id} className="item-card" onClick={() => addToCart(item)}>
-                            <img src={item.img} alt={item.name} />
-                            <h3>{item.name}</h3>
-                            <p>{item.price}</p>
-                        </div>
-                    ))}
-                </div>
+                {/* items list */}
+                    <div className="item-grid">
+                        {items.map((item) => (
+                            <div
+                                key={item.id}
+                                className="item-card"
+                                onClick={() => addToCart(item)} // Add to cart on click
+                            >
+                                <img 
+                                    src={item.img}
+                                    alt={item.name}
+                                    onError={(e) => { e.target.src = '/images/default.jpg'; }}
+                                    className="item-image"
+                                />
+                                <h3>{item.name}</h3>
+                                <p>${item.price.toFixed(2)}</p>
+                            </div>
+                        ))}
+                    </div>
 
                 {/* Right Side (Video Feed + Cart) */}
                 <div className="right-side">
@@ -184,7 +279,9 @@ const Shop = () => {
                                 </div>
                             ))
                         )}
-                        <button className="checkout-btn">Checkout</button>
+                        <button onClick={handleCheckout} className="checkout-btn">
+                            Checkout
+                        </button>
                     </div>
                 </div>
             </div>
