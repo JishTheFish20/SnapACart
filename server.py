@@ -12,6 +12,7 @@ import base64
 from PIL import Image
 import io
 import bcrypt
+from flask import send_from_directory
 
 
 app = Flask(__name__, static_folder='website/build')
@@ -103,6 +104,21 @@ def login():
     if user and bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
         return jsonify({"message": "Login successful"}), 200
     return jsonify({"error": "Invalid credentials"}), 401
+
+@app.route('/catalog', methods=['GET'])
+def get_catalog():
+    items = Catalog.query.all()
+    items_list = [
+        {
+            "id": item.id,
+            "name": item.itemName,
+            "price": item.itemPrice,
+            "img": item.itemURL
+        }
+        for item in items
+    ]
+    print("Catalog Data Sent:", items_list)
+    return jsonify(items_list), 200
 
 
 @app.route('/consent', methods=['POST'])
